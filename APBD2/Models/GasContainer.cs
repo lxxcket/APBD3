@@ -2,44 +2,43 @@
 
 namespace APBD2.Models;
 
-public class GasContainer
+public class GasContainer : ContainerBase, IHazardNotifier
 {
-    private static int _serialNumberCounter = 0;
-    private string SerialNumber { get; set; }
-    private double LoadMass { get; set; }
-    private double Height { get; set; }
-    private double ContainerMass { get; set; }
-    private double Depth { get; set; }
-    private readonly double MaxLoadMass = 1000.0;
+    protected double Pressure { get; set; }
 
-    public GasContainer(double loadMass, double height, double containerMass, double depth)
+    public GasContainer(double height, double containerMass, double depth, double maxLoadMass, double pressure) 
+        : base(height, containerMass, depth, maxLoadMass)
     {
-        LoadMass = loadMass;
-        Height = height;
-        ContainerMass = containerMass;
-        Depth = depth;
+        Pressure = pressure;
+    }
+    
+    
+    public override void LoadContainer(double loadMass)
+    {
+        if (loadMass > MaxLoadMass)
+            throw new OverfillException("LoadMass exceeds _maxLoadMass for this container");
 
-        _serialNumberCounter++;
-        SerialNumber = $"CON-G-{_serialNumberCounter}";
+        if (loadMass + CurrentLoadMass > MaxLoadMass)
+        {
+            NotifyDanger();
+            return;
+        }
 
-        try
-        {
-            if (LoadMass > MaxLoadMass)
-                throw new OverfillException();
-        }
-        catch (OverfillException e)
-        {
-            Console.WriteLine("LOAD MASS CAN'T BE BIGGER THAN MAXLOADMASS WHICH IS: " + MaxLoadMass);
-        }
+        CurrentLoadMass += loadMass;
     }
 
-    public GasContainer()
+    public override void EmptyContainer()
     {
-        
+        CurrentLoadMass *= 0.05;
+    }
+
+    public void NotifyDanger()
+    {
+        Console.WriteLine($"Detected dangerous operation on container with serial number {_serialNumber}, total LoadMass would be greater that _maxLoadMass.");
     }
 
     public override string ToString()
     {
-        return "Container type: " + this.GetType().Name + ", SerialNumber:  " + SerialNumber + ", LoadMass: " +  LoadMass+ ", Height: " + Height + ", ContainerMass: " + ContainerMass + ", Depth: " + Depth;
+        return base.ToString() + $"| Pressure: {Pressure} atm";
     }
 }
