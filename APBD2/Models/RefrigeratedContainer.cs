@@ -2,39 +2,62 @@
 
 namespace APBD2.Models;
 
-public class RefrigeratedContainer
+public class RefrigeratedContainer : ContainerBase
 {
-    private static int _serialNumberCounter = 0;
-    private string SerialNumber { get; set; }
-    private double LoadMass { get; set; }
-    private double Height { get; set; }
-    private double ContainerMass { get; set; }
-    private double Depth { get; set; }
-    private readonly double MaxLoadMass = 1000.0;
+    protected string ProductType {get; set; }
+    protected double ContainerTemperature { get; set; }
+    private static Dictionary<string, double> ProductAllowedTemperature;
 
-    public RefrigeratedContainer(double loadMass, double height, double containerMass, double depth)
+    static RefrigeratedContainer()
     {
-        LoadMass = loadMass;
-        Height = height;
-        ContainerMass = containerMass;
-        Depth = depth;
-
-        _serialNumberCounter++;
-        SerialNumber = $"CON-C-{_serialNumberCounter}";
-
-        try
+        ProductAllowedTemperature = new Dictionary<string, double>();
+        ProductAllowedTemperature.Add("Bananas", 13.3);
+        ProductAllowedTemperature.Add("Chocolate", 18);
+        ProductAllowedTemperature.Add("Fish", 2);
+        ProductAllowedTemperature.Add("Meat", -15);
+        ProductAllowedTemperature.Add("Ice cream", -18);
+        ProductAllowedTemperature.Add("Frozen pizza", -30);
+        ProductAllowedTemperature.Add("Cheese", 7.2);
+        ProductAllowedTemperature.Add("Sausages", 5);
+        ProductAllowedTemperature.Add("Butter", 20.5);
+        ProductAllowedTemperature.Add("Eggs", 19);
+        
+    }
+    public RefrigeratedContainer(double height, double containerMass, double depth, double maxLoadMass, string productType, double containerTemperature) : base(height, containerMass, depth, maxLoadMass)
+    {
+        if (ProductAllowedTemperature[productType] > containerTemperature)
         {
-            if (LoadMass > MaxLoadMass)
-                throw new OverfillException();
+            throw new NotAllowedTemperatureOfContainerException(
+                "Container temperature can't be lower than temperature that needed to store provided product type");
         }
-        catch (OverfillException e)
-        {
-            Console.WriteLine("LOAD MASS CAN'T BE BIGGER THAN MAXLOADMASS WHICH IS: " + MaxLoadMass);
-        }
+
+        ProductType = productType;
+        ContainerTemperature = containerTemperature;
     }
 
+    public void LoadContainerWithProducts(double loadMass, string productType)
+    {
+        if (productType.ToLower() != ProductType.ToLower())
+            throw new NotAllowedProductException(
+                $"This product could not be placed in this container because this container can only be used to store: {ProductType}");
+        LoadContainer(loadMass);
+    }
+
+    public override void LoadContainer(double loadMass)
+    {
+        if (CurrentLoadMass + loadMass > MaxLoadMass)
+            throw new OverfillException("LoadMass exceeds _maxLoadMass for this container");
+
+        CurrentLoadMass += loadMass;
+    }
+
+    public override void EmptyContainer()
+    {
+        CurrentLoadMass = 0;
+    }
+    
     public override string ToString()
     {
-        return "Container type: " + this.GetType().Name + ", SerialNumber:  " + SerialNumber + ", LoadMass: " +  LoadMass+ ", Height: " + Height + ", ContainerMass: " + ContainerMass + ", Depth: " + Depth;
+        return base.ToString() + $"| Product type: {ProductType} | Temperature of container: {ContainerTemperature}";
     }
 }
